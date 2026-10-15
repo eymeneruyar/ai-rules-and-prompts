@@ -13,9 +13,15 @@ Follow all Common Unit Test Rules.
 - Focus on public behavior rather than implementation details.
 
 ## Test Data
-- Reuse common constant test values across test methods.
 - Define shared test constants in `helper/ConstantHelper`.
-- Do not redefine equivalent constant values inside individual test methods.
+- Reuse common constant values across test methods.
+- Do not redefine equivalent constants inside test methods.
+- Use `helper/TestDataHelper` to create reusable test objects such as DTOs and entities.
+- Build test objects using values from `ConstantHelper`.
+- Prefer reusable factory methods over repeated object initialization in test classes.
+- Allow test-specific overrides when different values are required.
+- Keep test data helpers simple and free of business logic.
+- Avoid creating helper methods for objects used only once.
 
 ## Organization
 - Group test methods by the production method they test.
