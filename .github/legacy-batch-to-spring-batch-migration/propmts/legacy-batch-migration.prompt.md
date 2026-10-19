@@ -1,6 +1,6 @@
 ---
 name: legacy-batch-migration
-description: Migrate legacy batch processes to Java Spring Batch
+description: Migrate legacy applications to Java Spring Batch
 agent: legacy-batch-orchestrator
 ---
 
@@ -8,18 +8,18 @@ agent: legacy-batch-orchestrator
 
 ## Inputs
 
-- Source Project: ${input:sourcePath:Legacy source project path}
-- Target Project: ${input:targetPath:Target Java project path}
-- Migration Scope: ${input:migrationScope:Batch or business process to migrate}
+- Legacy Source: ${input:legacySource:Legacy project path}
+- Target Project: ${input:targetProject:New Java Spring Batch project path}
+- Migration Scope: ${input:migrationScope:All batch business processes}
 
 ## Task
 
 Start the Legacy Batch Migration Orchestrator.
 
-- Use the Spring Batch Template configured in the Orchestrator.
-- Migrate only the specified business process.
-- Follow the Orchestrator workflow and approval gates.
-- Resume from the last approved phase if progress exists.
+- Use the configured Spring Batch Template.
+- Analyze only the specified legacy scope.
+- Follow the defined workflow and approval gates.
+- Resume existing migration progress when available.
 - Otherwise, start with Analysis.
-- Do not modify original source or template projects.
+- Never modify the legacy source or original template.
 - Keep chat responses under 2 sentences.

@@ -1,148 +1,62 @@
 ---
-description: Java and Spring Batch development standards
+description: Team Java 17, Spring Boot 3.x and Spring Batch implementation standards
 applyTo: "**/*.java"
 ---
 
-# Java & Spring Batch Standards
+# Java & Spring Batch Team Standards
 
-## 1. General Java Standards
+Follow the approved Spring Batch Template as the primary implementation reference. Where code and these written standards conflict, flag the conflict for design approval; never silently override business requirements.
 
-- Use Java 17 and Spring Boot 3.x.
-- Follow SOLID and Clean Code principles.
-- Apply appropriate design patterns only when necessary.
-- Keep implementations simple, maintainable and testable.
-- Avoid unnecessary abstractions and code duplication.
-- Prefer composition over inheritance unless inheritance is justified.
-- Keep methods focused and cyclomatic complexity low.
-- Split methods containing excessive conditional logic.
-- Design business logic to minimize the impact of future changes.
-- Do not introduce unrelated refactoring.
+## Java & Design
 
-## 2. Naming Conventions
+- Use Java 17 and Spring Boot 3.x versions compatible with the provided template; retain its Spring Batch version and BOM unless explicitly approved.
+- Follow SOLID, Clean Code, single-purpose classes and low-complexity methods. Split complex branching into focused methods/components.
+- Use meaningful names: `UpperCamelCase` for classes, `lowerCamelCase` for methods/fields, `UPPER_SNAKE_CASE` for constants and lowercase packages.
+- Minimize duplication. Share DTO/entity fields only when their **meaning and lifecycle** match; do not introduce inheritance merely because names match. Prefer composition for DTOs and suitable JPA mappings (`@MappedSuperclass`, `@Embeddable`) for entities where justified.
+- Use Lombok for DTOs. Avoid entity annotations that break JPA identity/proxy semantics (for example, indiscriminate `@Data`).
+- Favor testable business components and change-localized rules. Apply design patterns only where complexity justifies them; avoid speculative abstractions.
+- Include concise `package-info.java` files for relevant packages as required by the team template.
+- Make utility class constructors `private`. Group related constants in nested `static final` classes when appropriate; avoid needless duplicates.
+- Retrieve business/application parameters through existing methods in the `cache` package. Do not create parallel parameter-loading logic.
+- Ensure thread safety for each actual execution model: avoid shared mutable state in singleton beans; scope stateful batch components appropriately and do not share non-thread-safe readers/writers across threads.
 
-- Classes: UpperCamelCase.
-- Methods and variables: lowerCamelCase.
-- Constants: UPPER_SNAKE_CASE.
-- Packages: lowercase.
-- Use meaningful, business-oriented names.
-- Avoid ambiguous abbreviations.
+## Spring Batch Job Responsibility
 
-## 3. DTO & Entity
+- **One Job = one clear business responsibility.** A Job may contain several Steps only if they serve that responsibility.
+- Decompose legacy multi-purpose processes rather than copying legacy Job boundaries.
+- Separate file ingestion from distinct matching/reconciliation work. If credit, debit and prepaid authorization matching are present, design dedicated Jobs for each.
+- Avoid unnecessary Job fragmentation; preserve business behavior and data dependencies.
+- Each Job must be independently triggerable. **UC4** owns scheduling, triggering, ordering, inter-Job dependencies and parallel/sequential execution. Do not add `@Scheduled`, in-code Job-to-Job triggering or an internal scheduler.
 
-- Use Lombok for DTO classes.
-- Avoid unnecessary boilerplate code.
-- Reuse common fields when their semantics are equivalent.
-- Do not introduce inheritance solely because field names match.
-- Prefer composition for reusable DTO structures.
-- Use appropriate JPA mapping strategies for shared entity fields.
-- Avoid inappropriate Lombok annotations on JPA entities.
+## Reader → Processor → Writer
 
-## 4. Package Structure
+- Use Spring Batch Reader → (optional) Processor → Writer conventions. Use chunk-oriented processing for record/file/data processing.
+- For database reads use `JdbcCursorItemReader` according to the template's transaction and threading conventions.
+- File readers must support multiple input files whenever file ingestion is required.
+- Keep transformations, validations and business rules in the Processor or dedicated business components. Omit Processor if not required.
+- Perform business database INSERT/UPDATE/DELETE operations in Writer; technical logging continues through the template's logging components.
+- Keep SQL in `src/main/resources/sql/<schema_name>/`, loaded through template conventions; bind SQL parameters safely. Never concatenate user data into SQL.
+- Preserve required record ordering, fixed-width layouts, encoding, precision, aggregations and trailer/header rules.
 
-<!-- PACKAGE_TREE: TO BE PROVIDED -->
+## Transactions, Reliability & Performance
 
-- Follow the defined package structure.
-- Do not introduce new packages without architectural justification.
-- Provide a concise package-info.java for relevant packages.
-- Keep responsibilities separated.
+- Follow approved chunk, transaction, commit/rollback and resource handling decisions; do not invent transaction equivalence with the legacy system.
+- Follow existing flag-based business restart/recovery conventions and design for idempotency where needed. Do not introduce Spring Batch metadata-based **business** restart handling without approval.
+- Reuse template listeners, logging, exception handling, cache, shared libraries, configuration and dependency conventions.
+- Avoid premature partitioning and multithreading. Propose concurrency only when necessary, safe and approved.
+- Avoid excessive DB round-trips, resource leaks and unnecessary full-memory loading.
+- Do not change BOM versions, upgrade dependencies or refactor unrelated code without explicit approval.
 
-## 5. Constants & Utilities
+## Package Structure
 
-- Utility classes must have private constructors.
-- Group related constants using appropriate nested static classes.
-- Avoid duplicated constants.
-- Reuse existing utility classes before creating new ones.
-- Do not introduce unnecessary utility methods.
+<!-- TEAM_PACKAGE_TREE: Paste the team's package-tree below. -->
 
-## 6. Configuration & Cache
 
-- Access application/business parameters through existing
-  classes and methods under the cache package.
-- Do not duplicate parameter retrieval logic.
-- Avoid unnecessary repeated parameter lookups.
-- Follow the template's configuration conventions.
+<!-- END_TEAM_PACKAGE_TREE -->
 
-## 7. Thread Safety
+Follow this package tree once provided. Otherwise preserve the template structure; do not invent a conflicting package hierarchy.
 
-- Ensure components are safe for their execution model.
-- Avoid mutable shared state in singleton beans.
-- Use appropriate scopes for stateful Batch components.
-- Do not share non-thread-safe readers or writers across threads.
-- Preserve data consistency during concurrent processing.
+## Migration-Specific Boundary
 
-## 8. Spring Batch Architecture
-
-- Follow the Reader -> Processor -> Writer architecture.
-- Use chunk-oriented processing for data processing operations.
-- Use ItemProcessor only when transformation or business
-  processing is required.
-- Allow Reader -> Writer flow when processing is unnecessary.
-- Follow existing Job and Step configuration patterns.
-- Reuse template components whenever possible.
-
-## Job Scheduling & Orchestration
-
-- All Batch Jobs are triggered and scheduled externally via UC4.
-- Each Job must be independently executable.
-- Do not implement Job scheduling within the Java application.
-- Do not trigger other Jobs programmatically.
-- Do not implement inter-Job orchestration or sequencing.
-- Do not configure parallel or sequential Job execution in Java.
-- Do not introduce @Scheduled or internal scheduling mechanisms.
-- Identify inter-Job data dependencies during migration design.
-- Document execution prerequisites for UC4 configuration.
-- Keep each Job focused on its own business responsibility.
-
-## 9. Reader Standards
-
-- Use JdbcCursorItemReader for database reading.
-- Support multiple input files when file reading is required.
-- Store SQL queries under:
-  src/main/resources/sql/<schema_name>/
-- Load SQL statements from resource files.
-- Bind SQL parameters safely.
-- Do not hardcode SQL statements inside Java classes.
-
-## 10. Processor Standards
-
-- Keep business processing logic in the Processor layer.
-- Separate complex business rules into focused components.
-- Avoid database DML operations inside processors.
-- Keep transformations deterministic where possible.
-- Avoid unnecessary stateful processing.
-
-## 11. Writer Standards
-
-- Execute business database DML operations in the Writer layer.
-- Store SQL statements under:
-  src/main/resources/sql/<schema_name>/
-- Use parameter binding for SQL statements.
-- Follow template transaction and exception-handling patterns.
-- Avoid unnecessary database round trips.
-- Preserve business data integrity.
-
-## 12. Performance & Reliability
-
-- Follow the template's chunk-size and transaction conventions.
-- Avoid unnecessary database and file operations.
-- Ensure resources are properly managed.
-- Consider restart behavior and idempotency.
-- Do not introduce multithreading or partitioning unless justified.
-- Preserve existing business behavior.
-
-## 13. Implementation Principles
-
-- Follow the approved Spring Batch Template architecture.
-- Reuse existing components before creating new ones.
-- Preserve established logging and exception-handling patterns.
-- Keep all implemented code testable.
-- Do not make unapproved architectural changes.
-
-## Business Logic Separation
-
-- Keep business rules independent of technical infrastructure.
-- Avoid embedding complex business logic directly in
-  Reader, Writer or configuration classes.
-- Extract reusable business logic into dedicated components.
-- Do not create service classes for trivial operations.
-- Prefer existing project patterns over new architectural layers.
+- Preserve approved business behavior, not the legacy language's implementation techniques.
+- Do not generate or run unit tests during the initial migration. Keep resulting code testable; expert review precedes subsequent test generation.
